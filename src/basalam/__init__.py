@@ -1,0 +1,3 @@
+"""
+Basalam namespace package
+"""
