@@ -11,6 +11,8 @@ setup(
     packages=find_namespace_packages(where='src', include=['basalam.hermes_messaging_sdk']),
     package_dir={'': 'src'},
     namespace_packages=["basalam"],
+    setuptools_git_versioning={"enabled": True},
+    setup_requires=["setuptools-git-versioning"],
     classifiers=[
         "Development Status :: 4 - Beta",
         "Intended Audience :: Developers",
