@@ -2,7 +2,6 @@ from setuptools import setup, find_namespace_packages
 
 setup(
     name="basalam.hermes-messaging-sdk",
-    version="0.1.0",
     author="Hasan Golparvar",
     author_email="h.golparvar1383@gmail.com",
     description="Python SDK to integrate and interact with Hermes Marketing Automation Platform",
