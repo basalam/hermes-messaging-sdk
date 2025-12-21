@@ -87,14 +87,14 @@ class HermesClient:
     def trigger_workflow(
         self,
         workflow_id: int,
-        data: Optional[Dict[str, Any]] = None
+        **kwargs
     ) -> None:
         """
         Trigger a single workflow execution.
 
         Args:
             workflow_id: ID of the workflow to trigger (must be positive integer)
-            data: Data to pass to the workflow trigger (optional)
+            kwargs: kwargs to pass to the workflow trigger (optional)
 
         Raises:
             ValueError: If workflow_id is invalid
@@ -104,20 +104,20 @@ class HermesClient:
         Example:
             >>> client.trigger_workflow(
             ...     workflow_id=123,
-            ...     data={"user_id": 456, "action": "purchase"}
-            ... )
+            ...     user_id=456, action="purchase"
+ )
         """
         # Validate inputs
         if not isinstance(workflow_id, int) or workflow_id <= 0:
             raise ValueError(f"workflow_id must be a positive integer, got: {workflow_id}")
 
-        if data is not None and not isinstance(data, dict):
-            raise TypeError(f"data must be a dictionary or None, got: {type(data).__name__}")
+        if kwargs is not None and not isinstance(kwargs, dict):
+            raise TypeError(f"kwargs must be a dictionary or None, got: {type(kwargs).__name__}")
 
         url = f"{self.base_url}/trigger/"
         payload = {
             'workflow_id': workflow_id,
-            'data': data or {}
+            **kwargs
         }
 
         self._make_request(url, payload)
@@ -125,25 +125,25 @@ class HermesClient:
     def bulk_trigger_workflow(
         self,
         workflow_id: int,
-        data: List[Dict[str, Any]]
+        triggers: List[Dict[str, Any]]
     ) -> None:
         """
         Trigger a workflow execution in bulk (multiple triggers at once).
 
         Args:
             workflow_id: ID of the workflow to trigger (must be positive integer)
-            data: List of data objects to pass to the workflow (one trigger per item)
+            triggers: List of triggers objects to pass to the workflow (one trigger per item)
 
         Raises:
-            ValueError: If workflow_id is invalid or data is empty
-            TypeError: If data is not a list of dictionaries
+            ValueError: If workflow_id is invalid or triggers is empty
+            TypeError: If triggers is not a list of dictionaries
             HermesAPIError: If the API returns an error
             HermesConnectionError: If unable to connect to the API
 
         Example:
             >>> client.bulk_trigger_workflow(
             ...     workflow_id=123,
-            ...     data=[
+            ...     triggers=[
             ...         {"user_id": 456, "action": "purchase"},
             ...         {"user_id": 789, "action": "signup"}
             ...     ]
@@ -153,19 +153,19 @@ class HermesClient:
         if not isinstance(workflow_id, int) or workflow_id <= 0:
             raise ValueError(f"workflow_id must be a positive integer, got: {workflow_id}")
 
-        if not isinstance(data, list):
-            raise TypeError(f"data must be a list, got: {type(data).__name__}")
+        if not isinstance(triggers, list):
+            raise TypeError(f"triggers must be a list, got: {type(triggers).__name__}")
 
-        if not data:
-            raise ValueError("data cannot be empty for bulk trigger")
+        if not triggers:
+            raise ValueError("triggers cannot be empty for bulk trigger")
 
-        if not all(isinstance(item, dict) for item in data):
-            raise TypeError("all items in data must be dictionaries")
+        if not all(isinstance(item, dict) for item in triggers):
+            raise TypeError("all items in triggers must be dictionaries")
 
         url = f"{self.base_url}/bulk-trigger/"
         payload = {
             'workflow_id': workflow_id,
-            'data': data
+            'triggers': triggers
         }
 
         self._make_request(url, payload)
