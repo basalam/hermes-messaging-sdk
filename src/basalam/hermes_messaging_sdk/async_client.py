@@ -43,7 +43,8 @@ class AsyncHermesClient:
         base_url: str = "https://hermes.basalam.com",
         timeout: int = 30,
         max_retries: int = 3,
-        retry_delay: Optional[float] = None
+        retry_delay: Optional[float] = None,
+        user_agent: Optional[str] = None
     ):
         """
         Initialize async Hermes client.
@@ -86,7 +87,8 @@ class AsyncHermesClient:
             timeout=timeout,
             headers={
                 'Authorization': f'Bearer {access_token}',
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'User-Agent': user_agent
             }
         )
 
