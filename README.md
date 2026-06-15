@@ -29,22 +29,24 @@ from basalam.hermes_messaging_sdk import HermesClient
 client = HermesClient(access_token="your-access-token-here")
 
 # Trigger a single workflow
-client.trigger_workflow(
+trigger_uuid = client.trigger_workflow(
     workflow_id=123,
     data={
         "user_id": 456,
         "product_id": "abc123"
     }
 )
+print(trigger_uuid)
 
 # Bulk trigger workflows
-client.bulk_trigger_workflow(
+trigger_uuids = client.bulk_trigger_workflow(
     workflow_id=123,
-    data=[
+    triggers=[
         {"user_id": 456, "amount": "10,000,000"},
         {"user_id": 789, "amount": "1,000,000"}
     ]
 )
+print(trigger_uuids)
 ```
 
 ### Asynchronous Usage
@@ -57,22 +59,24 @@ async def main():
     client = AsyncHermesClient(access_token="your-access-token")
 
     # Trigger a single workflow
-    await client.trigger_workflow(
+    trigger_uuid = await client.trigger_workflow(
         workflow_id=123,
         data={
             "user_id": 456,
             "product_id": "abc123"
         }
     )
+    print(trigger_uuid)
 
     # Bulk trigger workflows
-    await client.bulk_trigger_workflow(
+    trigger_uuids = await client.bulk_trigger_workflow(
         workflow_id=456,
-        data=[
+        triggers=[
             {"user_id": 789, "amount": "10,000,000"},
             {"user_id": 101, "amount": "4,000,000"}
         ]
     )
+    print(trigger_uuids)
 
 asyncio.run(main())
 ```
@@ -83,7 +87,7 @@ Both `HermesClient` and `AsyncHermesClient` support the following configuration 
 
 ```python
 client = HermesClient(
-    access_token="your-access-token",      # Required: Your Hermes API token
+    access_token="your-access-token",      # Required: Your Hermes API token ("Bearer " prefix is accepted)
     base_url="https://hermes.basalam.com", # Optional: Custom base URL
     timeout=30,                           # Optional: Request timeout in seconds
     max_retries=3,                        # Optional: Maximum retry attempts
@@ -98,6 +102,27 @@ The SDK includes built-in retry logic with exponential backoff:
 - **max_retries**: Number of retry attempts (default: 3)
 - **retry_delay**: Base delay in seconds (default: None, disabled)
 - When enabled, uses exponential backoff: `retry_delay * (2 ** attempt)`
+
+## API Responses
+
+Trigger methods return trigger tracking UUIDs extracted from Hermes responses.
+
+Single trigger returns a UUID string:
+
+```python
+"trigger-tracking-uuid"
+```
+
+Bulk trigger returns UUID strings in the same order as the input `triggers` list:
+
+```python
+[
+    "first-trigger-tracking-uuid",
+    "second-trigger-tracking-uuid"
+]
+```
+
+If Hermes returns an HTTP error or a successful response without the expected UUID fields, the SDK raises a Hermes exception.
 
 ## Error Handling
 
@@ -132,14 +157,14 @@ except HermesError as e:
 ### HermesClient
 
 **Methods:**
-- `trigger_workflow(workflow_id, data=None)` - Trigger a single workflow
-- `bulk_trigger_workflow(workflow_id, data)` - Trigger multiple workflows
+- `trigger_workflow(workflow_id, **kwargs)` - Trigger a single workflow and return its tracking UUID string
+- `bulk_trigger_workflow(workflow_id, triggers)` - Trigger multiple workflows and return tracking UUID strings in input order
 
 ### AsyncHermesClient
 
 **Async Methods:**
-- `async trigger_workflow(workflow_id, data=None)` - Trigger a single workflow
-- `async bulk_trigger_workflow(workflow_id, data)` - Trigger multiple workflows
+- `async trigger_workflow(workflow_id, **kwargs)` - Trigger a single workflow and return its tracking UUID string
+- `async bulk_trigger_workflow(workflow_id, triggers)` - Trigger multiple workflows and return tracking UUID strings in input order
 
 
 ## Requirements

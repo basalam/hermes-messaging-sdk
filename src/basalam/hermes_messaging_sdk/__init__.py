@@ -10,19 +10,21 @@ Sync Usage:
     )
 
     # Trigger a single workflow
-    client.trigger_workflow(
+    trigger_uuid = client.trigger_workflow(
         workflow_id=123,
         data={"user_id": 456, "action": "purchase"}
     )
+    print(trigger_uuid)
 
     # Trigger workflow in bulk
-    client.bulk_trigger_workflow(
+    trigger_uuids = client.bulk_trigger_workflow(
         workflow_id=123,
-        data=[
+        triggers=[
             {"user_id": 456, "action": "purchase"},
             {"user_id": 789, "action": "signup"}
         ]
     )
+    print(trigger_uuids)
 
 Async Usage:
     from basalam.hermes_messaging_sdk import AsyncHermesClient
@@ -32,10 +34,11 @@ Async Usage:
         client = AsyncHermesClient(
             access_token="your-access-token"
         )
-        await client.trigger_workflow(
+        trigger_uuid = await client.trigger_workflow(
             workflow_id=123,
             data={"user_id": 456}
         )
+        print(trigger_uuid)
         await client.close()
 
     asyncio.run(main())

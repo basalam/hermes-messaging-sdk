@@ -7,6 +7,7 @@ from typing import Dict, List, Any, Optional
 import httpx
 
 from .exceptions import HermesAPIError, HermesConnectionError, HermesAuthorizationError
+from .utils import normalize_access_token, build_headers
 
 
 class HermesClient:
@@ -56,8 +57,7 @@ class HermesClient:
         """
 
         # Validate inputs
-        if not access_token or not isinstance(access_token, str):
-            raise ValueError("access_token must be a non-empty string")
+        access_token = normalize_access_token(access_token)
 
         if not base_url or not isinstance(base_url, str):
             raise ValueError("base_url must be a non-empty string")
@@ -79,24 +79,23 @@ class HermesClient:
         # Create httpx client with persistent connection
         self._client = httpx.Client(
             timeout=timeout,
-            headers={
-                'Authorization': f'Bearer {access_token}',
-                'Content-Type': 'application/json',
-                'User-Agent': user_agent
-            }
+            headers=build_headers(access_token, user_agent)
         )
 
     def trigger_workflow(
         self,
         workflow_id: int,
         **kwargs
-    ) -> None:
+    ) -> str:
         """
         Trigger a single workflow execution.
 
         Args:
             workflow_id: ID of the workflow to trigger (must be positive integer)
             kwargs: kwargs to pass to the workflow trigger (optional)
+
+        Returns:
+            Trigger tracking UUID.
 
         Raises:
             ValueError: If workflow_id is invalid
@@ -122,19 +121,30 @@ class HermesClient:
             **kwargs
         }
 
-        self._make_request(url, payload)
+        response_data = self._make_request(url, payload)
+        uuid = response_data.get('uuid')
+        if not uuid:
+            raise HermesAPIError(
+                message="API response did not contain trigger UUID",
+                response_data=response_data
+            )
+
+        return uuid
 
     def bulk_trigger_workflow(
         self,
         workflow_id: int,
         triggers: List[Dict[str, Any]]
-    ) -> None:
+    ) -> List[str]:
         """
         Trigger a workflow execution in bulk (multiple triggers at once).
 
         Args:
             workflow_id: ID of the workflow to trigger (must be positive integer)
             triggers: List of triggers objects to pass to the workflow (one trigger per item)
+
+        Returns:
+            Trigger tracking UUIDs in the same order as input triggers.
 
         Raises:
             ValueError: If workflow_id is invalid or triggers is empty
@@ -170,15 +180,33 @@ class HermesClient:
             'triggers': triggers
         }
 
-        self._make_request(url, payload)
+        response_data = self._make_request(url, payload)
+        uuids = response_data.get('uuids')
+        skipped = response_data.get('skipped') or []
+        if skipped:
+            raise HermesAPIError(
+                message="API skipped one or more workflow triggers",
+                response_data=response_data
+            )
 
-    def _make_request(self, url: str, payload: Dict[str, Any]) -> None:
+        if not isinstance(uuids, list) or len(uuids) != len(triggers) or not all(uuids):
+            raise HermesAPIError(
+                message="API response did not contain UUIDs for all requested triggers",
+                response_data=response_data
+            )
+
+        return uuids
+
+    def _make_request(self, url: str, payload: Dict[str, Any]) -> Dict[str, Any]:
         """
         Make an HTTP POST request to the Hermes API with retry logic.
 
         Args:
             url: Full URL to request
             payload: Request payload
+
+        Returns:
+            Parsed JSON response from the API.
 
         Raises:
             HermesAuthorizationError: If authorization fails (401/403)
@@ -198,7 +226,14 @@ class HermesClient:
                             time.sleep(self.retry_delay * (2 ** attempt))
                         continue
 
-                return  # Success
+                try:
+                    return response.json()
+                except ValueError:
+                    raise HermesAPIError(
+                        message="API response did not contain valid JSON",
+                        status_code=response.status_code,
+                        response_data={}
+                    )
 
             except httpx.HTTPError as e:
                 # Network/connection errors - retry
